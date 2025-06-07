@@ -21,8 +21,8 @@
 
 1. **Клонируйте репозиторий и перейдите в папку:**
    ```bash
-   git clone https://github.com/your-org/node-agent.git
-   cd node-agent
+   git clone https://github.com/Lunatik-cyber/Astro_NodeAgent.git
+   cd Astro_NodeAgent
    ```
 
 2. **Запустите деплой-скрипт (он сам установит все нужные зависимости):**
@@ -46,8 +46,8 @@
 ## 🛠️ Пример супер-быстрой настройки через deploy.sh
 
 ```bash
-git clone https://github.com/your-org/node-agent.git
-cd node-agent
+git clone https://github.com/Lunatik-cyber/Astro_NodeAgent.git
+cd Astro_NodeAgent
 chmod +x deploy.sh
 sudo NODE_UUID=$(cat /proc/sys/kernel/random/uuid) MASTER_URL="http://master-node/api/node/heartbeat" ./deploy.sh
 ```
