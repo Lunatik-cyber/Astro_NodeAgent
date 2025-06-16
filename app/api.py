@@ -6,6 +6,7 @@ from app.gost import (
     edit_forwarding_port, list_forwarding_ports, forwarding_status,
     run_local_cmd
 )
+from app.traffic import get_interface_traffic
 
 router = APIRouter()
 
@@ -65,3 +66,10 @@ class CommandRequest(BaseModel):
 @router.post("/run_cmd")
 async def run_cmd(req: CommandRequest):
     return await run_local_cmd(req.command)
+
+@router.get("/traffic")
+async def traffic():
+    """
+    Общий трафик основного сетевого интерфейса (байты отправлено + принято)
+    """
+    return get_interface_traffic()
