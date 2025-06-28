@@ -18,50 +18,27 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-# Проверяем наличие необходимых переменных окружения
-if [ -z "$NODE_UUID" ]; then
-  echo "NODE_UUID is not set. Generating a new UUID."
-fi
-
-# Проверяем наличие переменной окружения MASTER_URL
-if [ -z "$MASTER_URL" ]; then
-  echo "MASTER_URL is not set. Using default: http://master-node/api/node/deploy"
-fi
+# Устанавливаем переменные окружения
+MASTER_URL=${MASTER_URL:-"http://master-node/api/node/register"}
+NODE_UUID=${NODE_UUID:-$(cat /proc/sys/kernel/random/uuid)}
 
 # Проверяем наличие Docker
 if ! command -v docker &> /dev/null; then
   echo "Docker is not installed. Installing Docker."
-  sudo curl -fsSL https://get.docker.com | sh
+  curl -fsSL https://get.docker.com | sh
 fi
 
 # Проверяем наличие jq для обработки JSON
 if ! command -v jq &> /dev/null; then
   echo "jq is not installed. Installing jq."
-  apt-get install -qq -y jq
+  apt-get update && apt-get install -y jq
 fi
 
 # Проверяем наличие curl для HTTP-запросов
 if ! command -v curl &> /dev/null; then
   echo "curl is not installed. Installing curl."
-  apt-get install -qq -y curl
+  apt-get update && apt-get install -y curl
 fi
-
-# Устанавливаем переменные окружения
-NODE_UUID=${NODE_UUID:-""}
-# Если NODE_UUID не задан, генерируем новый UUID
-if [ -z "$NODE_UUID" ]; then
-  NODE_UUID=$(cat /proc/sys/kernel/random/uuid)
-  echo "Generated new NODE_UUID: $NODE_UUID"
-else
-  echo "Using provided NODE_UUID: $NODE_UUID"
-fi
-
-# Устанавливаем переменную окружения для Docker
-export NODE_UUID="$NODE_UUID"
-
-# Устанавливаем URL для мастера, если он не задан $1 или используем дефот
-# Set default MASTER_URL
-MASTER_URL=${MASTER_URL:-"http://master-node/api/node/register"}
 
 # Override with command line argument if provided
 if [ -n "$1" ]; then
@@ -71,14 +48,7 @@ else
   echo "Using default MASTER_URL: $MASTER_URL"
 fi
 
-# Generate or use existing NODE_UUID
-if [ -z "$NODE_UUID" ]; then
-  NODE_UUID=$(uuidgen)
-  echo "NODE_UUID is not set. Generating a new UUID."
-  echo "Generated new NODE_UUID: $NODE_UUID"
-else
-  echo "Using existing NODE_UUID: $NODE_UUID"
-fi
+echo "Using NODE_UUID: $NODE_UUID"
 
 # Prepare registration data
 REGISTER_DATA=$(jq -n \
@@ -113,19 +83,22 @@ fi
 
 echo "Starting node agent with UUID: $NODE_UUID"
 echo "Connecting to master at: $MASTER_URL"
-curl -X POST "$MASTER_URL" \
-    -H "Content-Type: application/json" \
-    -d "{\"uuid\": \"$NODE_UUID\"}" \
-    --fail --silent --show-error || {
-    echo "Failed to register node with master."
-    exit 1
 
-docker build -t node-agent .
+# Build and run Docker container
+docker build -t node-agent . || {
+  echo "Failed to build Docker image"
+  exit 1
+}
 
 docker run -d --rm \
-    --name node-agent \
-    -e NODE_UUID="$NODE_UUID" \
-    -e MASTER_URL="$MASTER_URL" \
-    --privileged \
-    --network host \
-    node-agent 
+  --name node-agent \
+  -e NODE_UUID="$NODE_UUID" \
+  -e MASTER_URL="$MASTER_URL" \
+  --privileged \
+  --network host \
+  node-agent || {
+  echo "Failed to start Docker container"
+  exit 1
+}
+
+echo "Node agent started successfully"
