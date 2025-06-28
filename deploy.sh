@@ -71,12 +71,6 @@ else
   echo "Using default MASTER_URL: $MASTER_URL"
 fi
 
-# Check URL reachability with timeout
-if ! curl --max-time 5 --output /dev/null --silent --head --fail "$MASTER_URL"; then
-  echo "Error: Master URL is not reachable: $MASTER_URL" >&2
-  exit 1
-fi
-
 # Generate or use existing NODE_UUID
 if [ -z "$NODE_UUID" ]; then
   NODE_UUID=$(uuidgen)
