@@ -30,20 +30,20 @@ fi
 
 # Проверяем наличие Docker
 if ! command -v docker &> /dev/null; then
-  echo "Docker is not installed. Please install Docker to run this script."
-  exit 1
+  echo "Docker is not installed. Installing Docker."
+  sudo curl -fsSL https://get.docker.com | sh
 fi
 
 # Проверяем наличие jq для обработки JSON
 if ! command -v jq &> /dev/null; then
-  echo "jq is not installed. Please install jq to run this script."
-  exit 1
+  echo "jq is not installed. Installing jq."
+  apt install -qq -y jq
 fi
 
 # Проверяем наличие curl для HTTP-запросов
 if ! command -v curl &> /dev/null; then
-  echo "curl is not installed. Please install curl to run this script."
-  exit 1
+  echo "curl is not installed. Installing curl."
+  apt install -qq -y curl
 fi
 
 # Устанавливаем переменные окружения
