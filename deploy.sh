@@ -60,8 +60,10 @@ fi
 export NODE_UUID="$NODE_UUID"
 
 # Устанавливаем URL для мастера, если он не задан $1 или используем дефот
-MASTER_URL=${MASTER_URL:-"http://master-node/api/node/deploy"}
-# Если MASTER_URL не задан, используем значение из аргумента командной строки
+# Set default MASTER_URL
+MASTER_URL=${MASTER_URL:-"http://master-node/api/node/register"}
+
+# Override with command line argument if provided
 if [ -n "$1" ]; then
   MASTER_URL="$1"
   echo "Using provided MASTER_URL: $MASTER_URL"
@@ -69,9 +71,49 @@ else
   echo "Using default MASTER_URL: $MASTER_URL"
 fi
 
-# Проверяем доступность URL мастера
-if ! curl --output /dev/null --silent --head --fail "$MASTER_URL"; then
-  echo "Master URL is not reachable: $MASTER_URL"
+# Check URL reachability with timeout
+if ! curl --max-time 5 --output /dev/null --silent --head --fail "$MASTER_URL"; then
+  echo "Error: Master URL is not reachable: $MASTER_URL" >&2
+  exit 1
+fi
+
+# Generate or use existing NODE_UUID
+if [ -z "$NODE_UUID" ]; then
+  NODE_UUID=$(uuidgen)
+  echo "NODE_UUID is not set. Generating a new UUID."
+  echo "Generated new NODE_UUID: $NODE_UUID"
+else
+  echo "Using existing NODE_UUID: $NODE_UUID"
+fi
+
+# Prepare registration data
+REGISTER_DATA=$(jq -n \
+  --arg uuid "$NODE_UUID" \
+  '{
+    "node_uuid": $uuid
+  }')
+
+echo "Attempting to register node with master..."
+
+# Make POST request to register
+RESPONSE=$(curl -s -S -X POST \
+  -H "Content-Type: application/json" \
+  -d "$REGISTER_DATA" \
+  --max-time 10 \
+  --write-out "\nHTTP_STATUS:%{http_code}" \
+  "$MASTER_URL")
+
+# Extract HTTP status and body
+HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d':' -f2)
+RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_STATUS:/d')
+
+# Process response
+if [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 201 ]; then
+  echo "Node registered successfully!"
+  echo "Response: $RESPONSE_BODY"
+else
+  echo "Error: Failed to register node (HTTP $HTTP_STATUS)" >&2
+  echo "Response: $RESPONSE_BODY" >&2
   exit 1
 fi
 
