@@ -37,13 +37,13 @@ fi
 # Проверяем наличие jq для обработки JSON
 if ! command -v jq &> /dev/null; then
   echo "jq is not installed. Installing jq."
-  apt install -qq -y jq
+  apt-get install -qq -y jq
 fi
 
 # Проверяем наличие curl для HTTP-запросов
 if ! command -v curl &> /dev/null; then
   echo "curl is not installed. Installing curl."
-  apt install -qq -y curl
+  apt-get install -qq -y curl
 fi
 
 # Устанавливаем переменные окружения
@@ -110,12 +110,6 @@ else
   echo "Response: $RESPONSE_BODY" >&2
   exit 1
 fi
-
-# Устанавливаем необходимые зависимости
-apt update && apt install -y \
-    docker.io \
-    jq \
-    curl
 
 echo "Starting node agent with UUID: $NODE_UUID"
 echo "Connecting to master at: $MASTER_URL"
